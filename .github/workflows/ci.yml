@@ -9,11 +9,6 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-java@v4
-        with:
-          distribution: "zulu"
-          java-version: "17"
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -27,27 +22,45 @@ jobs:
             tail -n+11 |
             xargs -r -n1 gh api "repos/${GITHUB_REPOSITORY}/actions/runs/ID" -X DELETE || :
 
-      - name: Generate JSON
+      - name: Generate Morphe patch data
         run: |
           set -euo pipefail
 
-          # Fetch the release metadata and generated patch list directly from Morphe.
           r=$(curl -fsSL https://api.github.com/repos/morpheApp/morphe-patches/releases/latest)
-
           name=$(echo "$r" | jq -er '.assets[] | select(.name | endswith(".mpp")) | .name')
-          version_name="${name%.*}"
+          version_name="${name%.mpp}"
 
           curl -fsSL \
             https://raw.githubusercontent.com/MorpheApp/morphe-patches/main/patches-list.json \
-            -o docs/patches.json
+            -o /tmp/morphe-patches.json
 
-          if [ -s docs/patches.json ] &&
-             jq -e 'type == "array"' docs/patches.json >/dev/null &&
-             [ "$version_name" = "$(cat docs/version 2>/dev/null || true)" ]; then
-            exit 0
-          fi
+          jq --arg version "${version_name#patches-}" '
+            {
+              NOTE: "Do NOT manually edit this file. It is generated automatically.",
+              version: $version,
+              patches: [
+                .patches[] |
+                . as $patch |
+                {
+                  name: $patch.name,
+                  description: $patch.description,
+                  use: $patch.use,
+                  default: $patch["default"],
+                  compatiblePackages: (
+                    reduce ($patch.compatiblePackages // [])[] as $pkg
+                      ({}; . + {
+                        ($pkg.packageName): [
+                          ($pkg.targets // [])[]?.version
+                        ]
+                      })
+                  ),
+                  options: ($patch.options // [])
+                }
+              ]
+            }
+          ' /tmp/morphe-patches.json > docs/patches.json
 
-          echo -n "$version_name" > docs/version
+          echo -n "${version_name#patches-}" > docs/version
 
       - name: patches
         uses: stefanzweifel/git-auto-commit-action@v5
