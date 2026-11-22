@@ -6,6 +6,7 @@
   export let defaultPatchesJson;
   export let reprName;
   export let apkmirror_dlurl = "https://apkmirror.com/apk/";
+  export let archive_dlurl = "";
   export let TOML;
   export let arch = "universal";
 
@@ -27,7 +28,7 @@
   })(apkmirror_dlurl);
 
   let version = "auto";
-  let patches_source = "revanced/revanced-patches";
+  let patches_source = "MorpheApp/morphe-patches";
   let patches_version = "latest";
 
   function parsePatches(pkgName, patchesJson) {
@@ -128,6 +129,7 @@
     TOML = {
       app_name: app_name_c,
       apkmirror_dlurl: apkmirror_dlurl,
+      archive_dlurl: archive_dlurl,
       patches_source: patches_source,
       patches_version: patches_version,
       version: version,
@@ -161,7 +163,7 @@
       class="float-right w-7 h-7 rounded-full border-2 border-gray-400 text-gray-400 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-50"
       >-</button
     >
-    <!-- <button
+<!-- <button
       on:click={() => {
         const cl = nodeRef.cloneNode(true);
         let i;
@@ -199,6 +201,18 @@
         class="border-2 rounded border-gray-300 p-0.5 pl-1 w-full"
         size="60"
         bind:value={apkmirror_dlurl}
+      />
+    </label>
+
+    <hr class="my-3 border-t border-gray-300" />
+
+    <label
+      >archive-dlurl:
+      <input
+        type="text"
+        class="border-2 rounded border-gray-300 p-0.5 pl-1 w-full"
+        size="60"
+        bind:value={archive_dlurl}
       />
     </label>
 
