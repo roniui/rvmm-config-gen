@@ -26,33 +26,32 @@ jobs:
         run: |
           set -euo pipefail
 
-          r=$(curl -fsSL https://api.github.com/repos/morpheApp/morphe-patches/releases/latest)
-          name=$(echo "$r" | jq -er '.assets[] | select(.name | endswith(".mpp")) | .name')
-          version_name="${name%.mpp}"
+          release=$(curl -fsSL https://api.github.com/repos/morpheApp/morphe-patches/releases/latest)
+          asset_name=$(echo "$release" | jq -er '.assets[] | select(.name | endswith(".mpp")) | .name')
+          version="${asset_name#patches-}"
+          version="${version%.mpp}"
 
           curl -fsSL \
             https://raw.githubusercontent.com/MorpheApp/morphe-patches/main/patches-list.json \
             -o /tmp/morphe-patches.json
 
-          jq --arg version "${version_name#patches-}" '
+          jq --arg version "$version" '
             {
-              NOTE: "Do NOT manually edit this file. It is generated automatically.",
+              NOTE: "Generated from Morphe patches-list.json. Do not edit manually.",
               version: $version,
               patches: [
-                .patches[] |
-                . as $patch |
+                .patches[] | . as $patch |
                 {
                   name: $patch.name,
-                  description: $patch.description,
-                  use: $patch.use,
-                  default: $patch["default"],
+                  description: ($patch.description // ""),
+                  use: ($patch.default // false),
                   compatiblePackages: (
                     reduce ($patch.compatiblePackages // [])[] as $pkg
-                      ({}; . + {
-                        ($pkg.packageName): [
-                          ($pkg.targets // [])[]?.version
+                      ({};
+                        .[$pkg.packageName] = [
+                          ($pkg.targets // [])[]? | .version
                         ]
-                      })
+                      )
                   ),
                   options: ($patch.options // [])
                 }
@@ -60,7 +59,7 @@ jobs:
             }
           ' /tmp/morphe-patches.json > docs/patches.json
 
-          echo -n "${version_name#patches-}" > docs/version
+          echo -n "$version" > docs/version
 
       - name: patches
         uses: stefanzweifel/git-auto-commit-action@v5
