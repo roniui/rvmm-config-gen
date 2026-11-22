@@ -59,9 +59,14 @@
     "com.instagram.android":
       "https://apkmirror.com/apk/instagram/instagram-instagram/",
   };
+
   function getApkmirror(pkgName) {
     if (PKG_APKMIRROR[pkgName] !== undefined) return PKG_APKMIRROR[pkgName];
     else return undefined;
+  }
+
+  function getArchive(pkgName) {
+    return `https://archive.org/download/jhc-apks/apks/${pkgName}`;
   }
 
   let TOML = [];
@@ -101,7 +106,7 @@
 
   {#if patchesGenTextVisible}
   <div class="m-3 mb-5 text-xs justify-center items-center space-x-2 border border-gray-300 rounded-md py-2 px-4 bg-white font-medium text-gray">
-  If you don't have a patches.json for a custom bundle of revanced-patches, you can use 
+  If you don't have a patches.json for a custom bundle of morphe-patches, you can use
   <a class="underline" href="https://github.com/j-hc/rvmm-config-gen/raw/refs/heads/master/patches-json-gen.jar">patches-json-gen.jar</a>
   : <code>java -jar patches-json-gen.jar patches.rvp patches.json</code>
   </div>
@@ -113,15 +118,15 @@
         configTOMLVisible = !configTOMLVisible;
       }}
       class="m-3 mb-5 justify-center items-center space-x-2 border border-gray-300 rounded-md py-2 px-4 bg-white text-sm leading-5 font-medium text-gray-900 hover:text-gray-600 focus:outline-none focus:border-gray-300 focus:ring-blue active:bg-gray-50 active:text-gray-800"
-      >{configTOMLVisible ? "Hide Config" : "Create Config"}</button
+    >{configTOMLVisible ? "Hide Config" : "Create Config"}</button
     >
     <label
       for="files"
       class="m-3 mb-5 text-xs justify-center items-center space-x-2 border border-gray-300 rounded-md py-2 px-4 bg-white font-medium text-gray-900 hover:text-gray-600 focus:outline-none focus:border-gray-300 focus:ring-blue active:bg-gray-50 active:text-gray-800 ml-auto"
-      >Upload patches.json</label
+    >Upload patches.json</label
     >
     <input
-      on:click={() => patchesGenTextVisible = true }
+      on:click={() => patchesGenTextVisible = true}
       on:change={(e) => {
         var file = e.target.files[0];
         var r = new FileReader();
@@ -137,6 +142,7 @@
       type="file"
     />
   </div>
+
   {#if configTOMLVisible}
     <div
       class="bg-gray-300 rounded-lg mx-4 my-0 border border-gray-400 p-4 text-sm"
@@ -147,9 +153,11 @@
       <div id="config-toml-text">
         {#each TOML as t}
           {#if !t.deleted && t.apkmirror_dlurl !== "https://apkmirror.com/apk/" && t.apkmirror_dlurl.length !== 0}
-            [{t.app_name}]<br />
+            [{t.app_name}-Morphe]<br />
+            app-name = "{t.app_name}"<br />
             apkmirror-dlurl = "{t.apkmirror_dlurl}"<br />
-            {#if t.patches_source !== "revanced/revanced-patches"}
+            archive-dlurl = "{t.archive_dlurl}"<br />
+            {#if t.patches_source !== "MorpheApp/morphe-patches"}
               patches-source = "{t.patches_source}"<br />
               integrations-source = "{t.patches_source.split(
                 "/",
@@ -194,6 +202,7 @@
         {defaultPatchesJson}
         reprName={getReprName(pkgName)}
         apkmirror_dlurl={getApkmirror(pkgName)}
+        archive_dlurl={getArchive(pkgName)}
         bind:TOML={TOML[i]}
       />
     {/each}
