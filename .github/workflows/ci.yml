@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate JSON
         run: |
-          r=$(curl -s https://api.github.com/repos/revanced/revanced-patches/releases/latest) || exit 1
+          r=$(curl -s https://api.github.com/repos/morpheApp/morphe-patches/releases/latest) || exit 1
 
           name=$(echo "$r" | jq -r '.assets | .[0] | .name')
           version_name="${name%.*}"
