@@ -23,26 +23,35 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run list -L400 --json databaseId -q '.[].databaseId' | tail -n+10 | xargs -IID gh api "repos/$GITHUB_REPOSITORY/actions/runs/ID" -X DELETE || :
+          gh run list -L400 --json databaseId -q '.[].databaseId' |
+            tail -n+11 |
+            xargs -r -n1 gh api "repos/${GITHUB_REPOSITORY}/actions/runs/ID" -X DELETE || :
 
       - name: Generate JSON
         run: |
-          r=$(curl -s https://api.github.com/repos/morpheApp/morphe-patches/releases/latest) || exit 1
+          set -euo pipefail
 
-          name=$(echo "$r" | jq -r '.assets | .[0] | .name')
+          # Fetch the release metadata and generated patch list directly from Morphe.
+          r=$(curl -fsSL https://api.github.com/repos/morpheApp/morphe-patches/releases/latest)
+
+          name=$(echo "$r" | jq -er '.assets[] | select(.name | endswith(".mpp")) | .name')
           version_name="${name%.*}"
 
-          if [ "$version_name" = "$(cat docs/version)" ]; then exit 0; fi
-          echo -n "$version_name" >docs/version
+          curl -fsSL \
+            https://raw.githubusercontent.com/MorpheApp/morphe-patches/main/patches-list.json \
+            -o docs/patches.json
 
-          dl_url=$(echo "$r" | jq -r '.assets | .[0] | .browser_download_url')
-          wget "$dl_url" -O "$name"
+          if [ -s docs/patches.json ] &&
+             jq -e 'type == "array"' docs/patches.json >/dev/null &&
+             [ "$version_name" = "$(cat docs/version 2>/dev/null || true)" ]; then
+            exit 0
+          fi
 
-          java -jar patches-json-gen.jar "$name" "docs/patches.json"
+          echo -n "$version_name" > docs/version
 
       - name: patches
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: master
           file_pattern: docs/patches.json docs/version
-          commit_message: Update patches.json
+          commit_message: "Update patches.json"
